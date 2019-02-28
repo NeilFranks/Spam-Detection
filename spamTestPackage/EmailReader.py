@@ -82,12 +82,7 @@ def read_emails_from_directory(directory):
     subjectListOfWords = []
     bodyListOfPhrases = []
     subjectListOfPhrases = []
-    idx = 0
-
     for email in emailList:
-        if idx % 500 == 0:
-            print(idx)
-        idx = idx+1
 
         current = open(email, encoding='latin-1')
         lines = current.readlines()
