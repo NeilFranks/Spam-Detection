@@ -1,5 +1,8 @@
 import imaplib
 import email
+import base64
+import quopri
+import re
 
 """
 METHODS FOR EXTRACTION OF EMAIL DATA (SENDER, SUBJECT, AND BODY SO FAR)
@@ -16,10 +19,29 @@ def extractSender(myCon, myId):
 
     return sender
 
+"""
+This function is to decode subjects with emojis in them
+"""
+def encoded_words_to_text(encoded_words):
+    encoded_word_regex = r'=\?{1}(.+)\?{1}([B|Q])\?{1}(.+)\?{1}='
+    match = re.match(encoded_word_regex, encoded_words)
+
+    if match == None:
+        #encoded_words didnt match regular expression; they must already be decoded (didnt have any emojis)
+        return encoded_words
+    else:
+        charset, encoding, encoded_text = match.groups()
+        if encoding is 'B':
+            byte_string = base64.b64decode(encoded_text)
+        elif encoding is 'Q':
+            byte_string = quopri.decodestring(encoded_text)
+        return byte_string.decode(charset)
+
 def extractSubject(myCon, myId):
     _, raw_subject = myCon.fetch(myId, '(BODY[HEADER.FIELDS (SUBJECT)])')
     raw_subject_string = raw_subject[0][1].decode('utf-8')
-    subject = email.message_from_string(raw_subject_string)
+    encodedSubject = raw_subject_string[9:]  #removing preceding "Subject: "
+    subject = "Subject: "+ encoded_words_to_text(encodedSubject) #add preceding subject back on after its been decoded
 
     """
     subject is in the format: "Subject: *Subject*"
@@ -32,9 +54,14 @@ def extractBody(myCon, myId):
 
         # get email into byte literal
         raw_email = data[0][1]
+        # NOTE: At this point, Emojis are in UTF-8 Hex form, which is 6 pairs of hexadecimal digits.
+        # Maybe we could do something interesting with emojis at some point
+        # IDEA: we can keep track of presence of emojis even if we don't know what it is. Each has a unique string
+        # ALSO: PyCharm has functionality to display emojis interestingly
+
         raw_email_string = raw_email.decode('utf-8')
 
-        # converts byte literal to string removing b''
+        # can get all the info you want from this (date sent, whether it's been seen, message ID, subject, addresses
         email_message = email.message_from_string(raw_email_string)
 
         # this will loop through all the available multiparts in mail
@@ -56,7 +83,7 @@ ids = data[0].split() # split IDs
 
 i = len(ids) # i is number of emails found
 
-for x in range(i):
+for x in reversed(range(i)): #get newest emails first
     id = ids[x] # pick unique id corresponding to an email
     sender = extractSender(con, id)
     subject = extractSubject(con, id)

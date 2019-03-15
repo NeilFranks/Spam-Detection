@@ -109,6 +109,8 @@ def read_emails_from_directory(directory):
         # to keep track of phrases, I'll use a list that acts like a queue
         current2Word = ["", ""]
         current3Word = ["", "", ""]
+        current4Word = ["", "", "", ""]
+        current5Word = ["", "", "", "", ""]
 
         """
         Get phrases for body
@@ -132,6 +134,14 @@ def read_emails_from_directory(directory):
         """
         Get phrases for subject
         """
+
+        """
+        Note: It is interesting storing the phrases after removing stop words. Therefore, any phrase of 3 or 4 stopwords
+        followed by a not stopword becomes the same. So I'm seeing ('   prescription ', 7) as a reflection that there were
+        7 instances of 3 stopwords, then prescription, then a stop word.
+        
+        We should test whether it is better to remove the stop words before or after storing the phrase.
+        """
         # listOfWords contains words seen in order in the email
         # Increment through all of them and keep track of phrases
         for word in currentSubjectListOfWords:
@@ -144,9 +154,24 @@ def read_emails_from_directory(directory):
                 current3Word[1] = current3Word[2]
                 current3Word[2] = word
 
+                current4Word[0] = current4Word[1]
+                current4Word[1] = current4Word[2]
+                current4Word[2] = current4Word[3]
+                current4Word[3] = word
+
+                current5Word[0] = current5Word[1]
+                current5Word[1] = current5Word[2]
+                current5Word[2] = current5Word[3]
+                current5Word[3] = current5Word[4]
+                current5Word[4] = word
+
                 # add the words to listOfPhrases as a single string, with a space between them
                 subjectListOfPhrases.append(current2Word[0] + " " + current2Word[1])
                 subjectListOfPhrases.append(current3Word[0] + " " + current3Word[1] + " " + current3Word[2])
+                subjectListOfPhrases.append(current4Word[0] + " " + current4Word[1] + " " + current4Word[2]
+                                            + " " + current4Word[3])
+                subjectListOfPhrases.append(current5Word[0] + " " + current5Word[1] + " " + current5Word[2]
+                                            + " " + current5Word[3]+ " " + current5Word[4])
 
         bodyListOfWords += currentBodyListOfWords
         subjectListOfWords += currentSubjectListOfWords
