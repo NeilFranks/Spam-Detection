@@ -83,8 +83,8 @@ def read_emails_from_directory(directory):
     # Opens all files (including folders in files)
     for (path, _, files) in os.walk(directory):
         for file in files:
-            if file.endswith('.txt'):  # not necessary but just is a safety measure
-                emailList.append(os.path.join(path, file))
+            #if file.endswith('.txt'):  # not necessary but just is a safety measure
+            emailList.append(os.path.join(path, file))
 
     bodyListOfWords = []
     subjectListOfWords = []
@@ -101,10 +101,12 @@ def read_emails_from_directory(directory):
         for i in lines:
             # note: word is actually a list of all words in the line
             word = i.split()
-            if word[0] == "Subject:":
-                currentSubjectListOfWords += word
-            else:
-                currentBodyListOfWords += word
+            # check that word is not an empty list
+            if word:
+                if word[0] == "Subject:":
+                    currentSubjectListOfWords += word
+                else:
+                    currentBodyListOfWords += word
 
         # to keep track of phrases, I'll use a list that acts like a queue
         current2Word = ["", ""]
