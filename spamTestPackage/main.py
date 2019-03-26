@@ -1,4 +1,6 @@
 import imaplib
+import smtplib
+import ssl
 import email
 import base64
 import quopri
@@ -17,7 +19,7 @@ def extractSender(myCon, myId):
     sender is in the format: "From: *sender name* <*sender email address*>"
     """
 
-    return sender
+    return sender.as_string()
 
 """
 This function is to decode subjects with emojis in them
@@ -71,25 +73,53 @@ def extractBody(myCon, myId):
 
                 return body.decode('utf-8')
 
-con = imaplib.IMAP4_SSL('imap.gmail.com') #get a connection to gmail imap server
-con.login('capstonespamtest@gmail.com', 'BigMike1') #login
-con.select('inbox') #go into inbox
+def sendConfirmation(server, mySender):
+    # remove "From: " from sender
+    mySender = mySender[5::]
 
-# result should be a simple "OK", data[0] is a series of IDs for the emails
-# I don't think data has any element besides [0]
-result, data = con.uid('search', None, "ALL")
+    print(sender)
 
-ids = data[0].split() # split IDs
+    """This is code to confirm signup for spam emails"""
+    server_ssl.sendmail(cap, sender, subject, "thank you")
+
+    print("reply sent to " + sender + ": " + subject + " ; " + "thank you")
+
+def getEmailIDs(myCon, myIncludeSeen):
+    # result should be a simple "OK", data[0] is a series of IDs for the emails
+    # I don't think data has any element besides [0]
+    if myIncludeSeen:
+        result, data = myCon.uid('search', None, "ALL") # get all emails in inbox
+    else:
+        result, data = myCon.search(None, '(UNSEEN)') # get only unread emails in inbox
+
+    return data[0].split()  # split IDs
+
+
+con = imaplib.IMAP4_SSL('imap.gmail.com') # get a connection to gmail imap server
+cap = "capstonespamtest@gmail.com"
+con.login(cap, 'BigMike1') # login
+con.select('inbox') # go into inbox
+
+includeSeen = False # this bool is to include read emails in your search. set to true to only get unread
+ids = getEmailIDs(con, includeSeen) # get ID numbers of emails
 
 i = len(ids) # i is number of emails found
 
-for x in reversed(range(i)): #get newest emails first
-    id = ids[x] # pick unique id corresponding to an email
+# Create a secure SSL context for smtp to send email replies
+server_ssl = smtplib.SMTP_SSL("smtp.gmail.com", 465)
+server_ssl.ehlo() # optional, called by login()
+server_ssl.login(cap, "BigMike1")
+
+for x in reversed(range(i)):  # get newest emails first
+    id = ids[x]  # pick unique id corresponding to an email
+
+    _, _ = con.store(id, '-FLAGS', '\\Seen') #mark this email as read (idk if we need lefthand side of expression
+
     sender = extractSender(con, id)
     subject = extractSubject(con, id)
     body = extractBody(con, id)
 
-    print(sender)
-    print(subject)
-    print(body)
+    if subject[9:16:] == "confirm":
+        sendConfirmation(server_ssl, sender)
 
+server_ssl.close()
