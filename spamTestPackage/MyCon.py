@@ -7,14 +7,16 @@ import re
 
 class MyCon:
 
-    def __init__(self, my_email, my_password):
+    def __init__(self):
+        self._con = imaplib.IMAP4_SSL('imap.gmail.com')  # get a connection to gmail imap server
+
+    def login(self, my_email, my_password):
         self._email = my_email
         self._password = my_password
-        self._con = imaplib.IMAP4_SSL('imap.gmail.com')  # get a connection to gmail imap server
         try:
             self._con.login(self._email, self._password)  # login
         except:
-            raise ValueError('Incorrect login credentials. Try again.')
+            raise ValueError('Incorrect login credentials.\nTry again.')
 
     """method to get all emails, either unread+read or just unread, from the directory con is in.
     Must select directory first; example: 

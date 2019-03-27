@@ -25,7 +25,7 @@ class GUIMain(BaseWidget):
 
         # Get a connection to your email account
         try:
-            include_seen = True
+            include_seen = False
             self._myCon = MyCon(self._email, self._pass)
             self._myCon._con.select('inbox')
             self._email_ids = self._myCon.get_email_ids(include_seen)
@@ -45,7 +45,7 @@ class GUIMain(BaseWidget):
             sender, date, subject, body = self._myCon.extract_info(self._email_ids[self._email_index])
 
             # Update fields
-            self._panel._value.update_fields(sender, date, subject, body)
+            self._panel._value.update_fields(sender, date, subject, body, (self._email_index+1).__str__(), len(self._email_ids).__str__())
 
     def __next_button_action(self):
         # Decrement email index
@@ -56,7 +56,7 @@ class GUIMain(BaseWidget):
             sender, date, subject, body = self._myCon.extract_info(self._email_ids[self._email_index])
 
             # Update fields
-            self._panel._value.update_fields(sender, date, subject, body)
+            self._panel._value.update_fields(sender, date, subject, body, (self._email_index+1).__str__(), len(self._email_ids).__str__())
 
     """
     METHODS TO CONSTRUCT THE VARIOUS VIEWS
@@ -64,7 +64,7 @@ class GUIMain(BaseWidget):
     def make_login_view(self):
         win = Login()
         win.parent = self
-        win._emailField.value = 'capstonespamtest@gmail.com'
+        win._emailField.value = 'spiggybensen@gmail.com'
         win._passField.value = 'BigMike1'
         win._button.value = self.__login_button_action
         return win
@@ -75,7 +75,7 @@ class GUIMain(BaseWidget):
         sender, date, subject, body = self._myCon.extract_info(self._email_ids[self._email_index])
 
         # Make window
-        win = EmailView(sender, date, subject, body)
+        win = EmailView(sender, date, subject, body, (self._email_index+1).__str__(), len(self._email_ids).__str__())
         win.parent = self
 
         # Define button action
