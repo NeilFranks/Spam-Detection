@@ -46,6 +46,10 @@ class Login(Page):
 class EmailList(Page):
     def __init__(self, *args, **kwargs):
         Page.__init__(self, *args, **kwargs)
+        self.display_list = Listbox(self, width=50)
+        self.scrollbar = Scrollbar(self, orient=VERTICAL)
+        self.email_body = Text(self)
+        self.body_scrollbar = Scrollbar(self, orient=VERTICAL)
 
     def show_list(self):
 
@@ -61,15 +65,33 @@ class EmailList(Page):
             mail = Email(sender, date, subject, body)
             self._list_of_emails.append(mail)
 
-        scrollbar = Scrollbar(self)
-        scrollbar.pack(side=RIGHT, fill=Y)
+        self.display_list.pack(side=LEFT, fill=BOTH)
 
-        display_list = Listbox(self, yscrollcommand=scrollbar.set)
         for email in self._list_of_emails:
-            display_list.insert(END, email.get_subject()+"\n"+email.get_sender())
+            self.display_list.insert(END, email.get_sender())
 
-        display_list.pack(side=LEFT, fill=BOTH)
-        scrollbar.config(command = display_list.yview)
+        self.scrollbar.pack(side=LEFT, fill=Y)
+        self.scrollbar.config(command=self.display_list.yview)
+
+        self.display_list.config(yscrollcommand=self.scrollbar.set)
+        self.display_list.bind('<<ListboxSelect>>', self.get_select)
+
+        self.email_body.config(wrap=CHAR, state=DISABLED)
+        self.email_body.pack(side=LEFT, fill=BOTH, expand=True)
+
+        self.body_scrollbar.pack(side=LEFT, fill=Y)
+        self.body_scrollbar.config(command=self.email_body.yview())
+
+    def get_select(self, event):
+        self.email_body.config(state=NORMAL)
+        self.email_body.delete('1.0', END)
+        display_list = event.widget
+        index = int(display_list.curselection()[0])
+        self.email_body.insert(END, "Subject: " + self._list_of_emails[index].get_subject() + "\n\n"
+                               + self._list_of_emails[index].get_body())
+        self.email_body.config(state=DISABLED)
+
+
 
 class MainView(Frame):
     def __init__(self, *args, **kwargs):
