@@ -1,5 +1,6 @@
 import imaplib
 import email
+import html
 import base64
 import quopri
 import re
@@ -53,13 +54,7 @@ class MyCon:
         sender = "*sender*"
         date = "*date*"
         subject = "*subject*"
-        body = "*body*"
-
-        # get body
-        # this will loop through all the available multiparts in mail
-        for part in email_message.walk():
-            if part.get_content_type() == "text/plain":  # ignore attachments/html
-                body = part.get_payload(decode=True).decode('utf-8')
+        body = "*body could not be decoded; it is almost certainly an html type*"
 
         # get sender, date, and subject
         headers = email_message._headers
@@ -70,5 +65,34 @@ class MyCon:
                 subject = h[1]
             elif h[0] == "Date":
                 date = h[1]
+
+        # get body
+
+        # this will loop through all the available multiparts in mail
+        for part in email_message.walk():
+            if part.get_content_type() == "text/plain":  # ignore attachments/html
+                body = part.get_payload(decode=True)
+
+                try:
+                    body = body.decode()
+                except:
+                    # figure out which charset this is using
+                    subheaders = email_message._headers
+                    for h in subheaders:
+                        if h[0] == 'Content-Type' or h[0] == 'Content-type':
+                            charset = h[1].split()[1].split("=")[1]
+
+                    # now you have the charset, but sometimes it has quotation marks or a semicolon. remove any
+                    charset = charset.replace("\"", "")
+                    charset = charset.replace(";", "")
+
+                    #make it lowercase
+                    charset = charset.lower()
+
+                    if charset[0:3] == "iso":
+                        print("a")
+
+                    #decode body according to charset
+                    body = body.decode(charset)
 
         return sender, date, subject, body

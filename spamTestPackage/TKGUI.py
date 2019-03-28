@@ -1,4 +1,5 @@
 from tkinter import *
+import os
 from spamTestPackage.MyCon import MyCon
 from spamTestPackage.Email import Email
 
@@ -49,7 +50,7 @@ class EmailList(Page):
         self.display_list = Listbox(self, width=50)
         self.scrollbar = Scrollbar(self, orient=VERTICAL)
         self.email_body = Text(self)
-        self.body_scrollbar = Scrollbar(self, orient=VERTICAL)
+        self.body_scrollbar = Scrollbar(self.email_body, orient=VERTICAL)
 
     def show_list(self):
 
@@ -57,30 +58,35 @@ class EmailList(Page):
         include_seen = True
         _myCon._con.select('inbox')
         self._email_ids = _myCon.get_email_ids(include_seen)
+        print("number of emails retrieved: "+len(self._email_ids).__str__())
 
         # Use id numbers to get every email into a list
         self._list_of_emails = []
         for id in self._email_ids:
             sender, date, subject, body = _myCon.extract_info(id)
             mail = Email(sender, date, subject, body)
-            self._list_of_emails.append(mail)
+            self._list_of_emails.insert(0, mail) # insert at front so newest emails are at front
 
         self.display_list.pack(side=LEFT, fill=BOTH)
 
+        # populate list
         for email in self._list_of_emails:
             self.display_list.insert(END, email.get_sender())
 
+        # bind scrollbar to list of emails
         self.scrollbar.pack(side=LEFT, fill=Y)
         self.scrollbar.config(command=self.display_list.yview)
-
         self.display_list.config(yscrollcommand=self.scrollbar.set)
         self.display_list.bind('<<ListboxSelect>>', self.get_select)
 
-        self.email_body.config(wrap=CHAR, state=DISABLED)
-        self.email_body.pack(side=LEFT, fill=BOTH, expand=True)
+        # bind another scrollbar to the body text
+        self.body_scrollbar.pack(side=RIGHT, fill=Y)
+        self.body_scrollbar.config(command=self.email_body.yview)
+        self.email_body['yscrollcommand'] = self.body_scrollbar.set
 
-        self.body_scrollbar.pack(side=LEFT, fill=Y)
-        self.body_scrollbar.config(command=self.email_body.yview())
+        # show email body text
+        self.email_body.config(wrap=CHAR, state=DISABLED)
+        self.email_body.pack(side=RIGHT, fill=BOTH, expand=True)
 
     def get_select(self, event):
         self.email_body.config(state=NORMAL)
@@ -116,5 +122,12 @@ if __name__ == "__main__":
     # initialize main viewer which places all pages into the window
     main = MainView(root)
     main.pack(side="top", fill="both", expand=True)
-    root.wm_geometry("400x400")
+    root.wm_geometry("1200x600")
+    root.wm_title("E-Mail Machine")
+
+    #add icon
+    base_folder = os.path.dirname(__file__)
+    image_path = os.path.join(base_folder, 'icon.bmp')
+    root.wm_iconbitmap(image_path) #not working for some reason, just makes icon blank
+
     root.mainloop()
