@@ -2,6 +2,7 @@ from tkinter import *
 import os
 from spamTestPackage.MyCon import MyCon
 from spamTestPackage.Email import Email
+from spamTestPackage.CommonCounter import CommonCounter
 
 class Page(Frame):
     def __init__(self, *args, **kwargs):
@@ -47,12 +48,23 @@ class Login(Page):
 class EmailList(Page):
     def __init__(self, *args, **kwargs):
         Page.__init__(self, *args, **kwargs)
+
+        # define stuff on page
+        self.subframe = Frame(self)
+        self.count = Button(self.subframe, text="Count common words and phrases", command=self.count_common)
+        self.spam_check = Button(self.subframe, text="Is this spam?", command=self.check_for_spam)
+
         self.display_list = Listbox(self, width=50)
         self.scrollbar = Scrollbar(self, orient=VERTICAL)
         self.email_body = Text(self)
         self.body_scrollbar = Scrollbar(self.email_body, orient=VERTICAL)
 
     def show_list(self):
+
+        # pack in
+        self.count.pack(side=LEFT)
+        self.spam_check.pack(side=RIGHT)
+        self.subframe.pack(side=TOP, fill=X)
 
         # retrieve ID numbers of all emails
         include_seen = True
@@ -89,15 +101,34 @@ class EmailList(Page):
         self.email_body.pack(side=RIGHT, fill=BOTH, expand=True)
 
     def get_select(self, event):
-        self.email_body.config(state=NORMAL)
-        self.email_body.delete('1.0', END)
+        # remember selected email
         display_list = event.widget
         index = int(display_list.curselection()[0])
-        self.email_body.insert(END, "Subject: " + self._list_of_emails[index].get_subject() + "\n\n"
-                               + self._list_of_emails[index].get_body())
+        self.selected_email = self._list_of_emails[index]
+
+        self.email_body.config(state=NORMAL)
+        self.email_body.delete('1.0', END)
+        self.email_body.insert(END, "Subject: " + self.selected_email.get_subject() + "\n\n"
+                               + self.selected_email.get_body())
         self.email_body.config(state=DISABLED)
 
+    def count_common(self):
+        subWords, sub2, sub3, sub4, sub5 = _subject_counter.get_common(self._list_of_emails, 500)
+        bodyWords, body2, body3, body4, body5 = _body_counter.get_common(self._list_of_emails, 500)
 
+        message = "SUBJECT\nSingle words: "+subWords.__str__()+"\n2 words: "+sub2.__str__()+"\n3 words: "\
+                  +sub3.__str__()+"\n4 words: "+sub4.__str__()+"\n4 words: "+sub5.__str__()+"\nBODY\nSingle words: "\
+                  +bodyWords.__str__()+"\n2 words: "+body2.__str__()+"\n3 words: "+body3.__str__()+"\n4 words: "\
+                  +body4.__str__()+"\n5 words: "+body5.__str__()+"\n"
+
+
+        self.email_body.config(state=NORMAL)
+        self.email_body.delete('1.0', END)
+        self.email_body.insert(END, message)
+        self.email_body.config(state=DISABLED)
+
+    def check_for_spam(self):
+        return 0
 
 class MainView(Frame):
     def __init__(self, *args, **kwargs):
@@ -113,6 +144,9 @@ class MainView(Frame):
 
 if __name__ == "__main__":
     _myCon = MyCon()
+    _subject_counter = CommonCounter("subject")
+    _body_counter = CommonCounter("body")
+
     root = Tk()
 
     # declare the various pages
