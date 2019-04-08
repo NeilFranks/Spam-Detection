@@ -77,10 +77,18 @@ class MyCon:
                     body = body.decode()
                 except:
                     # figure out which charset this is using
-                    subheaders = email_message._headers
-                    for h in subheaders:
-                        if h[0] == 'Content-Type' or h[0] == 'Content-type':
-                            charset = h[1].split()[1].split("=")[1]
+                    try:
+                        payload = email_message._payload
+                        for element in payload:
+                            subheaders = element._headers
+                            for h in subheaders:
+                                if h[0] == 'Content-Type' or h[0] == 'Content-type':
+                                    charset = h[1].split()[1].split("=")[1]
+                    except:
+                        subheaders = email_message._headers
+                        for h in subheaders:
+                            if h[0] == 'Content-Type' or h[0] == 'Content-type':
+                                charset = h[1].split()[1].split("=")[1]
 
                     # now you have the charset, but sometimes it has quotation marks or a semicolon. remove any
                     charset = charset.replace("\"", "")
@@ -89,10 +97,8 @@ class MyCon:
                     #make it lowercase
                     charset = charset.lower()
 
-                    if charset[0:3] == "iso":
-                        print("a")
-
                     #decode body according to charset
                     body = body.decode(charset)
 
         return sender, date, subject, body
+

@@ -116,10 +116,10 @@ class EmailList(Page):
         subWords, sub2, sub3, sub4, sub5 = _subject_counter.get_common(self._list_of_emails, 500)
         bodyWords, body2, body3, body4, body5 = _body_counter.get_common(self._list_of_emails, 500)
 
-        message = "SUBJECT\nSingle words: "+subWords.__str__()+"\n2 words: "+sub2.__str__()+"\n3 words: "\
-                  +sub3.__str__()+"\n4 words: "+sub4.__str__()+"\n4 words: "+sub5.__str__()+"\nBODY\nSingle words: "\
-                  +bodyWords.__str__()+"\n2 words: "+body2.__str__()+"\n3 words: "+body3.__str__()+"\n4 words: "\
-                  +body4.__str__()+"\n5 words: "+body5.__str__()+"\n"
+        message = "SUBJECT\nSingle words: "+subWords.__str__()+"\n\n2 words: "+sub2.__str__()+"\n\n3 words: "\
+                  +sub3.__str__()+"\n\n4 words: "+sub4.__str__()+"\n\n5 words: "+sub5.__str__()+"\n\nBODY\n\nSingle words: "\
+                  +bodyWords.__str__()+"\n\n2 words: "+body2.__str__()+"\n\n3 words: "+body3.__str__()+"\n\n4 words: "\
+                  +body4.__str__()+"\n\n5 words: "+body5.__str__()+"\n"
 
 
         self.email_body.config(state=NORMAL)

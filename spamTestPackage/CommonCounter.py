@@ -54,45 +54,50 @@ class CommonCounter:
                     # note: word is actually a list of all words in the line
                     words = i.split()
 
-                    # add all words to list of words. Don't consider stop words here
-                    self._words += words
+                    # add all words to list of words. Don't consider stop words here but do consider length
+                    current_words = []
+                    for word in words:
+                        if len(word) < 20:
+                            current_words += words
 
+            self._words += current_words
 
             # parse phrases after getting every word in the email
-
             current_2_word = ["", ""]
             current_3_word = ["", "", ""]
             current_4_word = ["", "", "", ""]
             current_5_word = ["", "", "", "", ""]
 
-            for word in words:
-                # update current phrase seen
-                current_2_word[0] = current_2_word[1]
-                current_2_word[1] = word
+            for word in current_words:
+                if word not in self._stop_words: # get phrases where at least one word is not a stopword
 
-                current_3_word[0] = current_3_word[1]
-                current_3_word[1] = current_3_word[2]
-                current_3_word[2] = word
+                    # update current phrase seen
+                    current_2_word[0] = current_2_word[1]
+                    current_2_word[1] = word
 
-                current_4_word[0] = current_4_word[1]
-                current_4_word[1] = current_4_word[2]
-                current_4_word[2] = current_4_word[3]
-                current_4_word[3] = word
+                    current_3_word[0] = current_3_word[1]
+                    current_3_word[1] = current_3_word[2]
+                    current_3_word[2] = word
 
-                current_5_word[0] = current_5_word[1]
-                current_5_word[1] = current_5_word[2]
-                current_5_word[2] = current_5_word[3]
-                current_5_word[3] = current_5_word[4]
-                current_5_word[4] = word
+                    current_4_word[0] = current_4_word[1]
+                    current_4_word[1] = current_4_word[2]
+                    current_4_word[2] = current_4_word[3]
+                    current_4_word[3] = word
 
-                self.append_phrases(current_2_word, current_3_word, current_4_word, current_5_word)
+                    current_5_word[0] = current_5_word[1]
+                    current_5_word[1] = current_5_word[2]
+                    current_5_word[2] = current_5_word[3]
+                    current_5_word[3] = current_5_word[4]
+                    current_5_word[4] = word
+
+                    self.append_phrases(current_2_word, current_3_word, current_4_word, current_5_word)
 
             # remove stopwords now
             self._words = self.remove_stop_words(self._words)
-            self._phrases2 = self.remove_stop_words(self._phrases2)
-            self._phrases3 = self.remove_stop_words(self._phrases3)
-            self._phrases4 = self.remove_stop_words(self._phrases4)
-            self._phrases5 = self.remove_stop_words(self._phrases5)
+            # self._phrases2 = self.remove_stop_words(self._phrases2)
+            # self._phrases3 = self.remove_stop_words(self._phrases3)
+            # self._phrases4 = self.remove_stop_words(self._phrases4)
+            # self._phrases5 = self.remove_stop_words(self._phrases5)
 
             # sort by most common
             freq1 = collections.Counter(self._words)
@@ -129,14 +134,16 @@ class CommonCounter:
             if isinstance(list[0], str):
                 # list is list of individual words
                 for word in list:
-                    if word not in self._stop_words:
+                    word = word.lower()
+                    if word not in self._stop_words and len(word) < 20:
                         newList.append(word)
             else:
                 # list is list of phrases
                     for phrase in list:
                         newPhrase = []
                         for word in phrase:
-                            if word not in self._stop_words:
+                            if word not in self._stop_words and len(word) < 20:
+                                word = word.lower()
                                 newPhrase.append(word)
                             else:
                                 newPhrase.append("_") # append a blank in place of the stop word
