@@ -23,6 +23,7 @@ def k_nearest_neighbor():
     clf = neighbors.KNeighborsClassifier()
     clf.fit(x_train, y_train)
     accuracy = clf.score(x_test, y_test)
+    print("accuracy")
     print(accuracy)
 
 # def k_nearest_neighbor(result, p, k):
@@ -82,10 +83,10 @@ if __name__ == '__main__':
         for i in range(0, len(ham[0])):
             writer.writerow([ham[0][i][0]] + [','] + [ham[0][i][1]] + [','] + [ham[1][i][0]] + [','] +
                                 [ham[1][i][1]] + [','] + [ham[2][i][0]] + [','] + [ham[2][i][1]] + [','] +
-                                [ham[3][i][0]] + [','] + [ham[3][i][1]] + [','] + 0)
+                                [ham[3][i][0]] + [','] + [ham[3][i][1]] + [','] + ['0'])
         for i in range(0, len(spam[0])):
             writer.writerow([spam[0][i][0]] + [','] + [spam[0][i][1]] + [','] + [spam[1][i][0]] + [','] +
                             [spam[1][i][1]] + [','] + [spam[2][i][0]] + [','] + [spam[2][i][1]] + [','] +
-                            [spam[3][i][0]] + [','] + [spam[3][i][1]] + [','] + 1)
+                            [spam[3][i][0]] + [','] + [spam[3][i][1]] + [','] + ['1'])
 
     k_nearest_neighbor()

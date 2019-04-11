@@ -206,8 +206,8 @@ class EmailReader:
         for fil in files:
             with open(fil, encoding="latin-1") as fi:
                 for i, line in enumerate(fi):
-                    if i == 2:
-                        words = line.split()
+                    words = line.split()
+                    if words[0] != "Subject:" and words[0] != "Subject":
                         for word in words:
                             for j, d in enumerate(dictionary):
                                 if d[0] == word:
