@@ -3,6 +3,7 @@ import os
 from spamTestPackage.MyCon import MyCon
 from spamTestPackage.Email import Email
 from spamTestPackage.CommonCounter import CommonCounter
+from spamTestPackage.EmailReader import EmailReader
 
 class Page(Frame):
     def __init__(self, *args, **kwargs):
@@ -40,6 +41,7 @@ class Login(Page):
         try:
             _myCon.login(self.email.get(), self.password.get())
             p2.show_list()
+
             p2.lift()
         except ValueError as e:
             self.errorMessage.config(text=e)
@@ -50,9 +52,11 @@ class EmailList(Page):
         Page.__init__(self, *args, **kwargs)
 
         # define stuff on page
+        self.reader = EmailReader()
+        self._feature_matrix = list
         self.subframe = Frame(self)
         self.count = Button(self.subframe, text="Count common words and phrases", command=self.count_common)
-        self.spam_check = Button(self.subframe, text="Is this spam?", command=self.check_for_spam)
+        self.spam_check = Label(self.subframe, text="")
 
         self.display_list = Listbox(self, width=50)
         self.scrollbar = Scrollbar(self, orient=VERTICAL)
@@ -79,7 +83,14 @@ class EmailList(Page):
             mail = Email(sender, date, subject, body)
             self._list_of_emails.insert(0, mail) # insert at front so newest emails are at front
 
+        # Creates feature matrix when we are populating the emails.
+        # This should contain a matrix that contains a bunch of 0s and 1s.
+        # 0: HAM
+        # 1: SPAM
+        self._feature_matrix = self.reader.get_result_from_emails(self._list_of_emails)
+
         self.display_list.pack(side=LEFT, fill=BOTH)
+        #print(self._list_of_emails)
 
         # populate list
         for email in self._list_of_emails:
@@ -105,7 +116,10 @@ class EmailList(Page):
         display_list = event.widget
         index = int(display_list.curselection()[0])
         self.selected_email = self._list_of_emails[index]
-
+        if self._feature_matrix[index] == 0:
+            self.spam_check.config(text="Not Spam")
+        else:
+            self.spam_check.config(text="Spam")
         self.email_body.config(state=NORMAL)
         self.email_body.delete('1.0', END)
         self.email_body.insert(END, "Subject: " + self.selected_email.get_subject() + "\n\n"
@@ -127,8 +141,10 @@ class EmailList(Page):
         self.email_body.insert(END, message)
         self.email_body.config(state=DISABLED)
 
-    def check_for_spam(self):
-        return 0
+    #def check_for_spam(self): <-- This isn't needed anymore, as I just changed it to a label
+
+
+
 
 class MainView(Frame):
     def __init__(self, *args, **kwargs):
@@ -146,6 +162,7 @@ if __name__ == "__main__":
     _myCon = MyCon()
     _subject_counter = CommonCounter("subject")
     _body_counter = CommonCounter("body")
+    _feature_matrix = list
 
     root = Tk()
 
@@ -160,8 +177,8 @@ if __name__ == "__main__":
     root.wm_title("E-Mail Machine")
 
     #add icon
-    base_folder = os.path.dirname(__file__)
-    image_path = os.path.join(base_folder, 'icon.bmp')
-    root.wm_iconbitmap(image_path) #not working for some reason, just makes icon blank
+    #base_folder = os.path.dirname(__file__)
+    #image_path = os.path.join(base_folder, 'icon.bmp')
+    #root.wm_iconbitmap(image_path) #not working for some reason, just makes icon blank
 
     root.mainloop()

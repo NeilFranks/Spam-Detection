@@ -8,7 +8,6 @@
     a list. It also iterates through each email word by word to get
     all words. It then uses collections.Counter to get the count of
     each word, and removes common words.
-
     TODO: combine functionality with Neil's code to do the same directly from emails
 '''
 
@@ -26,15 +25,12 @@ from tkinter import filedialog
 """
     Deletes common words from the English dictionary.
     Also deletes words that are not alphabetical or of the length <= 2
-
     Not quite sure whether to include numbers or not.
-
     Neil: I think we might want to allow non-alpha words. Im seeing stuff like "???", "000000", "000" common for spam
 """
 
 
 class EmailReader:
-
     commonWordList = ["i", "me", "my", "myself", "we", "our", "ours", "ourselves", "you", "your", "yours", "yourself",
                       "yourselves", "he", "him", "his", "himself", "she", "her", "hers", "herself", "it", "its",
                       "itself", "they", "them", "their", "theirs", "themselves", "what", "which", "who", "whom",
@@ -46,6 +42,9 @@ class EmailReader:
                       "once", "here", "there", "when", "where", "why", "how", "all", "any", "both", "each", "few",
                       "more", "most", "other", "some", "such", "no", "nor", "not", "only", "own", "same", "so", "than",
                       "too", "very", "can", "will", "just", "don", "should", "now", "nbsp", "enron"]
+
+    def __init__(self):
+        return
 
     def remove_common_words(self, dict):
         words = list(dict.keys())
@@ -62,7 +61,6 @@ class EmailReader:
 
         return dict
 
-
     '''
         Simple solution to iterate through a directory and append
         all .txt files to a list.
@@ -70,18 +68,18 @@ class EmailReader:
         https://www.tutorialspoint.com/python3/os_listdir.htm
         and here:
         https://docs.python.org/3/library/os.path.html#os.path.join
-    
+
         Goes through each document word by word and adds them 
         to a list (listOfWords)
-    
+
         Then it finally utilizes Counter to put it into a dictionary
         that counts frequency of words and comes with a handy 
         "most_common" feature.
-    
+
         At this point I'm not sure how many words to return
         so I'm returning 500. It might be too much or too little, 
         but we'll see once we expand it to machine learning.
-    
+
         Neil: I'm trying to make listOfPhrases contain 2 and 3 word phrases.
         Will choose them indiscriminantly; just any 2 or 3 words that occur in a row
     '''
@@ -149,7 +147,7 @@ class EmailReader:
             Note: It is interesting storing the phrases after removing stop words. Therefore, any phrase of 3 or 4 stopwords
             followed by a not stopword becomes the same. So I'm seeing ('   prescription ', 7) as a reflection that there were
             7 instances of 3 stopwords, then prescription, then a stop word.
-    
+
             We should test whether it is better to remove the stop words before or after storing the phrase.
             """
             # listOfWords contains words seen in order in the email
@@ -196,7 +194,8 @@ class EmailReader:
 
         subjectPhraseFrequency = collections.Counter(subjectListOfPhrases)
 
-        return bodyWordFrequency.most_common(3000), subjectWordFrequency.most_common(3000), bodyPhraseFrequency.most_common(
+        return bodyWordFrequency.most_common(3000), subjectWordFrequency.most_common(
+            3000), bodyPhraseFrequency.most_common(
             3000), subjectPhraseFrequency.most_common(3000)
 
     def extract_features(self, mail_dir, dictionary):
@@ -216,6 +215,26 @@ class EmailReader:
             docID = docID + 1
         return features_matrix
 
+    # Same Extration process, just instead gets the email_list of the
+    # inbox. Doesn't incorporate subject line yet.
+    def extract_features_from_email(self, email_list, dictionary):
+        features_matrix = np.zeros((len(email_list), 3000))
+        emailID = 0
+        for email in email_list:
+            lines = email.get_subject()
+            lines += "\n"
+            lines += email.get_body()
+            if isinstance(lines, str):
+                words = lines.split()
+                if len(words) != 0 and (words[0] != "Subject:" and words[0] != "Subject"):
+                    for word in words:
+                        for j, d in enumerate(dictionary):
+                            if d[0] == word:
+                                wordID = j
+                                features_matrix[emailID, wordID] = words.count(word)
+            emailID = emailID + 1
+        return features_matrix
+
     def get_result(self):
         # file opener
         tkinter.Tk().withdraw()
@@ -229,6 +248,7 @@ class EmailReader:
         #                              Make sure you change the same result down
         #                              down in line 251 (test_matrix)
         train_matrix = self.extract_features(directory, result[0])
+        #print(train_matrix)
         # print("body words:", result[0])
         # print("\n\nsubject words:", result[1])
         # print("\n\nbody phrases:", result[2])
@@ -265,16 +285,46 @@ class EmailReader:
         print(confusion_matrix(test_labels, result4))
         return result
 
+    #
+    #   Make sure when you use this, you input the training set
+    #   I posted on slack.
+    #
+    def get_result_from_emails(self, email_list):
+        # file opener
+        tkinter.Tk().withdraw()
+        directory = filedialog.askdirectory()
+        result = self.read_emails_from_directory(directory)
+
+        train_labels = np.zeros(1430)
+        train_labels[715:1430] = 1
+        # This equates to 1-715 = HAM and 716-1430 = SPAM
+        #                              If you change result[n] to something else
+        #                              Make sure you change the same result down
+        #                              down in line 251 (test_matrix)
+        train_matrix = self.extract_features(directory, result[0])
+
+        print("body words:", len(result[0]))
+        print("subject words:", len(result[1]))
+        print("body phrases:", len(result[2]))
+        print("subject phrases:", len(result[3]))
+
+        model = LinearSVC()
+        model.fit(train_matrix, train_labels)
+
+        # develop test matrix from emails in inbox
+        test_matrix = self.extract_features_from_email(email_list, result[0])
+        # predict with training model from enron
+        result = model.predict(test_matrix)
+        return result
+
+
 if __name__ == '__main__':
     a = EmailReader()
     a.get_result()
-        # directory input:
-        #   C:\Users\Brad\PycharmProjects\EmailReader\spam
-        # which I got from;
-        #   http://www2.aueb.gr/users/ion/data/enron-spam/
+    # directory input:
+    #   C:\Users\Brad\PycharmProjects\EmailReader\spam
+    # which I got from;
+    #   http://www2.aueb.gr/users/ion/data/enron-spam/
 
-        # Output Example:
-        # ... ('these', 330), ('free', 314), ('within', 313), ('pills', 311), ('size', 306) ...
-
-
-
+    # Output Example:
+    # ... ('these', 330), ('free', 314), ('within', 313), ('pills', 311), ('size', 306) ...

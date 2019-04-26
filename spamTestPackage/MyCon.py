@@ -33,7 +33,6 @@ class MyCon:
 
     """
     METHODS FOR EXTRACTION OF EMAIL DATA (SENDER, DATE, SUBJECT, AND BODY SO FAR)
-
     """
     def extract_info(self, my_id):
         _, data = self._con.uid('fetch', my_id, '(RFC822)')  # get that email
@@ -45,7 +44,8 @@ class MyCon:
         # IDEA: we can keep track of presence of emojis even if we don't know what it is. Each has a unique string
         # ALSO: PyCharm has functionality to display emojis interestingly
 
-        raw_email_string = raw_email.decode('utf-8')
+        # Changed this to latin-1 to stop from crashing - Brad 4/26
+        raw_email_string = raw_email.decode('latin-1')
 
         # can get all the info you want from this (date sent, whether it's been seen, message ID, subject, addresses
         email_message = email.message_from_string(raw_email_string)
@@ -101,4 +101,3 @@ class MyCon:
                     body = body.decode(charset)
 
         return sender, date, subject, body
-
