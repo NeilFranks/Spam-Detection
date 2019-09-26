@@ -14,7 +14,10 @@
 import os
 import collections
 import tkinter
+import time
 import numpy as np
+import re
+import pickle
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import confusion_matrix
 from sklearn.svm import LinearSVC
@@ -41,7 +44,7 @@ class EmailReader:
                       "from", "up", "down", "in", "out", "on", "off", "over", "under", "again", "further", "then",
                       "once", "here", "there", "when", "where", "why", "how", "all", "any", "both", "each", "few",
                       "more", "most", "other", "some", "such", "no", "nor", "not", "only", "own", "same", "so", "than",
-                      "too", "very", "can", "will", "just", "don", "should", "now", "nbsp", "enron"]
+                      "too", "very", "can", "will", "just", "don", "should", "now", "nbsp", "enron" ]
 
     def __init__(self):
         return
@@ -193,26 +196,63 @@ class EmailReader:
         bodyPhraseFrequency = collections.Counter(bodyListOfPhrases)
 
         subjectPhraseFrequency = collections.Counter(subjectListOfPhrases)
+        current = (bodyWordFrequency, subjectWordFrequency, bodyPhraseFrequency, subjectPhraseFrequency)
 
-        return bodyWordFrequency.most_common(3000), subjectWordFrequency.most_common(
-            3000), bodyPhraseFrequency.most_common(
-            3000), subjectPhraseFrequency.most_common(3000)
+        final = (collections.Counter(), collections.Counter(), collections.Counter(), collections.Counter())
+        
+        try:
+            with open('model.data', 'rb') as output:
+                final = pickle.load(output)
+        except:
+            pass
+
+        body = final[0] + current[0]
+        subject = final[1] + current[1]
+        bodyPhrase = final[2] + current[2]
+        subjectPhrase = final[3] + current[3]
+        final = (body, subject, bodyPhrase, subjectPhrase)
+
+        with open('model.data', 'wb') as output:
+            pickle.dump(final, output)
+        return final[0].most_common(3000), final[1].most_common(3000), final[2].most_common(3000), final[3].most_common(3000), 
 
     def extract_features(self, mail_dir, dictionary):
         files = [os.path.join(mail_dir, fi) for fi in os.listdir(mail_dir)]
+        files.sort()
         features_matrix = np.zeros((len(files), 3000))
         docID = 0
         for fil in files:
             with open(fil, encoding="latin-1") as fi:
-                for i, line in enumerate(fi):
-                    words = line.split()
-                    if words[0] != "Subject:" and words[0] != "Subject":
-                        for word in words:
-                            for j, d in enumerate(dictionary):
-                                if d[0] == word:
-                                    wordID = j
-                                    features_matrix[docID, wordID] = words.count(word)
+                line = fi.read()
+                words = line.split("\n")
+                if "Subject" in words[0] or "subject" in words[0]:
+                    words.remove(words[0])
+                line = " ".join(words)
+                line = re.sub(r'[^a-zA-Z\d\s]', '', line)
+                words = line.split()
+                for word in words:
+                    if word in dictionary:
+                        wordID = dictionary.index(word)
+                        features_matrix[docID, wordID] += 1 
             docID = docID + 1
+        return features_matrix
+
+    def extract_features_from_file(self, file, dictionary):
+        features_matrix = np.zeros((1, 3000))
+        docID = 0 
+        with open(file, encoding="latin-1") as fi:
+            line = fi.read()
+            words = line.split("\n")
+            if "Subject" in words[0] or "subject" in words[0]:
+                words.remove(words[0])
+            line = " ".join(words)
+            line = re.sub(r'[^a-zA-Z\d\s]', '', line)
+            words = line.split()
+            for word in words:
+                if word in dictionary:
+                    wordID = dictionary.index(word)
+                    features_matrix[docID, wordID] += 1 
+        docID = docID + 1
         return features_matrix
 
     # Same Extration process, just instead gets the email_list of the
@@ -231,15 +271,26 @@ class EmailReader:
                         for j, d in enumerate(dictionary):
                             if d[0] == word:
                                 wordID = j
-                                features_matrix[emailID, wordID] = words.count(word)
+                                features_matrix[emailID, wordID] += .0001 * words.count(word)
             emailID = emailID + 1
         return features_matrix
+
 
     def get_result(self):
         # file opener
         tkinter.Tk().withdraw()
         directory = filedialog.askdirectory()
+        print("Reading emails..")
         result = self.read_emails_from_directory(directory)
+        print("body words:", result[0][:10])
+        for i in range(len(result[0])):
+            result[0][i] = result[0][i][0]
+
+        print("Stopped Reading emails..")
+        ham_emails = list()
+        spam_emails = list()
+        train_labels = np.zeros(len(ham_emails) + len(spam_emails))
+        
 
         train_labels = np.zeros(1430)
         train_labels[715:1430] = 1
@@ -248,41 +299,26 @@ class EmailReader:
         #                              Make sure you change the same result down
         #                              down in line 251 (test_matrix)
         train_matrix = self.extract_features(directory, result[0])
-        #print(train_matrix)
+        print(train_matrix)
         # print("body words:", result[0])
         # print("\n\nsubject words:", result[1])
         # print("\n\nbody phrases:", result[2])
         # print("\n\nsubject phrases:", result[3])
 
-        print("body words:", len(result[0]))
+        print("body words:", result[0][:10])
         print("subject words:", len(result[1]))
         print("body phrases:", len(result[2]))
         print("subject phrases:", len(result[3]))
 
-        model1 = MultinomialNB()
-        model2 = LinearSVC()
-        model3 = RandomForestClassifier()
-        model4 = KNeighborsClassifier()
-        model1.fit(train_matrix, train_labels)
-        model2.fit(train_matrix, train_labels)
-        model3.fit(train_matrix, train_labels)
-        model4.fit(train_matrix, train_labels)
+        SVC = LinearSVC()
+        SVC.fit(train_matrix, train_labels)
 
-        test_dir = filedialog.askdirectory()
-        #                                       Here -----v
-        test_matrix = self.extract_features(test_dir, result[0])
-        test_labels = np.zeros(600)
-        # This equates to 1-300 = HAM and 301-600 = SPAM
-        test_labels[300:600] = 1
-        result1 = model1.predict(test_matrix)
-        result2 = model2.predict(test_matrix)
-        result3 = model3.predict(test_matrix)
-        result4 = model4.predict(test_matrix)
 
-        print(confusion_matrix(test_labels, result1))
-        print(confusion_matrix(test_labels, result2))
-        print(confusion_matrix(test_labels, result3))
-        print(confusion_matrix(test_labels, result4))
+        while(1):
+            directory = filedialog.askopenfilename()
+            train_matrix = self.extract_features_from_file(directory, result[0])
+            print(SVC.predict(train_matrix))
+            time.sleep(5)
         return result
 
     #
@@ -301,7 +337,7 @@ class EmailReader:
         #                              If you change result[n] to something else
         #                              Make sure you change the same result down
         #                              down in line 251 (test_matrix)
-        train_matrix = self.extract_features(directory, result[0])
+        train_matrix = self.extract_features(directory, bodySubject)
 
         print("body words:", len(result[0]))
         print("subject words:", len(result[1]))
