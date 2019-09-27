@@ -88,12 +88,12 @@ class EmailReader:
     '''
 
     def read_emails_from_directory(self, directory):
-        emailList = []
+        emailList = directory
         # Opens all files (including folders in files)
-        for (path, _, files) in os.walk(directory):
-            for file in files:
-                # if file.endswith('.txt'):  # not necessary but just is a safety measure
-                emailList.append(os.path.join(path, file))
+        # for (path, _, files) in os.walk(directory):
+        #     for file in files:
+        #         # if file.endswith('.txt'):  # not necessary but just is a safety measure
+        #         emailList.append(os.path.join(path, file))
 
         bodyListOfWords = []
         subjectListOfWords = []
@@ -217,7 +217,11 @@ class EmailReader:
         return final[0].most_common(3000), final[1].most_common(3000), final[2].most_common(3000), final[3].most_common(3000), 
 
     def extract_features(self, mail_dir, dictionary):
-        files = [os.path.join(mail_dir, fi) for fi in os.listdir(mail_dir)]
+        try:
+            files = [os.path.join(mail_dir, fi) for fi in os.listdir(mail_dir)]
+        except:
+            files = mail_dir
+        files = list(files)
         files.sort()
         features_matrix = np.zeros((len(files), 3000))
         docID = 0
@@ -279,36 +283,36 @@ class EmailReader:
     def get_result(self):
         # file opener
         tkinter.Tk().withdraw()
-        directory = filedialog.askdirectory()
-        print("Reading emails..")
+        ham = filedialog.askdirectory(title="Select HAM directory or HAM file(s) (cancel to instead select files)")
+        if (len(ham) == 0):
+            ham = filedialog.askopenfilenames()
+        else:
+            files = [os.path.join(ham, fi) for fi in os.listdir(ham)]
+            ham = files
+
+        print("Reading Ham..")
+
+        spam = filedialog.askdirectory(title="Select HAM directory or HAM file(s) (cancel to instead select files)")
+        if (len(spam) == 0):
+            spam = filedialog.askopenfilenames()
+        else:
+            files = [os.path.join(spam, fi) for fi in os.listdir(spam)]
+            spam = files
+
+        print("Reading Spam..")
+
+        directory = ham + spam
+
         result = self.read_emails_from_directory(directory)
-        print("body words:", result[0][:10])
+
         for i in range(len(result[0])):
             result[0][i] = result[0][i][0]
 
-        print("Stopped Reading emails..")
-        ham_emails = list()
-        spam_emails = list()
-        train_labels = np.zeros(len(ham_emails) + len(spam_emails))
+        train_labels = np.zeros(len(ham) + len(spam))
         
-
-        train_labels = np.zeros(1430)
-        train_labels[715:1430] = 1
-        # This equates to 1-715 = HAM and 716-1430 = SPAM
-        #                              If you change result[n] to something else
-        #                              Make sure you change the same result down
-        #                              down in line 251 (test_matrix)
+        train_labels[len(ham):] = 1
         train_matrix = self.extract_features(directory, result[0])
         print(train_matrix)
-        # print("body words:", result[0])
-        # print("\n\nsubject words:", result[1])
-        # print("\n\nbody phrases:", result[2])
-        # print("\n\nsubject phrases:", result[3])
-
-        print("body words:", result[0][:10])
-        print("subject words:", len(result[1]))
-        print("body phrases:", len(result[2]))
-        print("subject phrases:", len(result[3]))
 
         SVC = LinearSVC()
         SVC.fit(train_matrix, train_labels)
@@ -316,9 +320,13 @@ class EmailReader:
 
         while(1):
             directory = filedialog.askopenfilename()
-            train_matrix = self.extract_features_from_file(directory, result[0])
-            print(SVC.predict(train_matrix))
-            time.sleep(5)
+            try:
+                train_matrix = self.extract_features_from_file(directory, result[0])
+            except:
+                break
+            prediction = SVC.predict(train_matrix)
+            print("I think this email is Spam!" if '1.' in str(prediction[0]) else "I think this email is Ham!")
+            time.sleep(.25)
         return result
 
     #
